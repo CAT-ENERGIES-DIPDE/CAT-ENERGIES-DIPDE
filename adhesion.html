@@ -792,48 +792,6 @@ footer .footer-text {
         <div class="bancaire-row"><span class="bk-label">BIC</span><span class="bk-val">CMCIFR2A</span></div>
       </div>
 
-      <span class="section-label">Mode de règlement <span class="req" style="color:var(--bleu-clair)">*</span></span>
-      <div class="radio-row">
-        <label class="radio-label">
-          <input type="radio" name="reglement" value="annuel" onchange="togglePaymentFields()">
-          <span class="radio-dot"></span>Virement annuel
-        </label>
-        <label class="radio-label">
-          <input type="radio" name="reglement" value="mensuel" onchange="togglePaymentFields()">
-          <span class="radio-dot"></span>Virement mensuel permanent
-        </label>
-      </div>
-
-      <div class="payment-conditional" id="pay-annuel">
-        <div class="grid-2" style="margin-top:16px">
-          <div class="field">
-            <label class="field-label" for="date-virement">Date du virement <span class="req">*</span></label>
-            <input type="date" id="date-virement">
-          </div>
-        </div>
-      </div>
-
-      <div class="payment-conditional" id="pay-mensuel">
-        <div class="grid-2" style="margin-top:16px">
-          <div class="field">
-            <label class="field-label" for="date-mep">Date de mise en place <span class="req">*</span></label>
-            <input type="date" id="date-mep">
-          </div>
-          <div class="field">
-            <label class="field-label" for="jour-mois">Jour du mois</label>
-            <select id="jour-mois">
-              <option value="">— Sélectionner —</option>
-              <option value="1">1er</option>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-              <option value="20">20</option>
-              <option value="25">25</option>
-              <option value="28">28</option>
-            </select>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -917,13 +875,6 @@ function toggleWarning() {
   }
 }
 
-/* ─── PAYMENT FIELDS ─── */
-function togglePaymentFields() {
-  const val = document.querySelector('input[name="reglement"]:checked')?.value;
-  document.getElementById('pay-annuel').classList.toggle('visible', val === 'annuel');
-  document.getElementById('pay-mensuel').classList.toggle('visible', val === 'mensuel');
-}
-
 /* ─── COLLECT COLLEGE ─── */
 function getCollege() {
   const checked = [...document.querySelectorAll('input[name="college"]:checked')];
@@ -958,28 +909,12 @@ function validate() {
       return false;
     } else { el.classList.remove('error'); }
   }
-  const reglement = document.querySelector('input[name="reglement"]:checked');
-  if (!reglement) {
-    showToast('⚠ Veuillez sélectionner un mode de règlement.', 'error');
-    return false;
-  }
-  if (reglement.value === 'annuel' && !document.getElementById('date-virement').value) {
-    document.getElementById('date-virement').classList.add('error');
-    showToast('⚠ Veuillez renseigner la date du virement.', 'error');
-    return false;
-  }
-  if (reglement.value === 'mensuel' && !document.getElementById('date-mep').value) {
-    document.getElementById('date-mep').classList.add('error');
-    showToast('⚠ Veuillez renseigner la date de mise en place.', 'error');
-    return false;
-  }
   return true;
 }
 
 /* ─── COLLECT DATA ─── */
 function collectData() {
   const g = id => document.getElementById(id)?.value?.trim() || '';
-  const reglement = document.querySelector('input[name="reglement"]:checked')?.value || '';
   const anonyme = document.getElementById('chk-anonyme').checked;
   const whatsapp = document.getElementById('chk-whatsapp').checked;
   return {
@@ -991,10 +926,6 @@ function collectData() {
     anonyme, whatsapp,
     dateAdhesion: formatDate(g('date-adhesion')),
     signature: g('signature'),
-    reglement,
-    dateVirement: formatDate(g('date-virement')),
-    dateMEP: formatDate(g('date-mep')),
-    jourMois: g('jour-mois')
   };
 }
 
@@ -1142,17 +1073,7 @@ async function generatePDF() {
   doc.text('Plafond : 1 % du revenu net imposable. À reporter sur votre déclaration annuelle.', margin + 6, y + 20);
   y += 30;
 
-  // Mode de règlement (AVANT coordonnées bancaires, comme dans le formulaire)
-  checkPage(20);
-  row('Mode de règlement', d.reglement === 'annuel' ? 'Virement annuel' : 'Virement mensuel permanent');
-  if (d.reglement === 'annuel') row('Date du virement', d.dateVirement);
-  if (d.reglement === 'mensuel') {
-    row('Date de mise en place', d.dateMEP);
-    row('Jour du prélèvement', d.jourMois ? d.jourMois : '—');
-  }
-  y += 4;
-
-  // Coordonnées bancaires (après le mode de règlement)
+  // Coordonnées bancaires
   checkPage(30);
   doc.setFillColor(...bleuPale);
   doc.roundedRect(margin, y, colW, 28, 2, 2, 'F');
@@ -1219,8 +1140,6 @@ function resetForm() {
     el.classList.remove('error');
   });
   document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => el.checked = false);
-  document.getElementById('pay-annuel').classList.remove('visible');
-  document.getElementById('pay-mensuel').classList.remove('visible');
   document.getElementById('whatsapp-warning').classList.remove('visible');
   showToast('Formulaire réinitialisé.', 'info');
 }
